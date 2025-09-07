@@ -32,3 +32,16 @@
 ### Buổi 6
 - Test API với postman 
 - Tạo crud với cursor AI 
+
+
+### Buổi 7 
+- Khi người dùng vào ai được phép được truy cập câu hỏi, tạo câu hỏi => sử dụng xác thực và phân quyền (Authentication)
+- Cần cài: 
+- npm i jsonwebtoken: 
+    Xác thực người dùng: Sau khi đăng nhập, server tạo một token gửi cho client.
+
+    Trao đổi thông tin an toàn: Token chứa dữ liệu (ví dụ: user ID, quyền hạn) và được ký để đảm bảo không bị sửa đổi.
+
+    Không cần lưu session trên server: Giúp hệ thống nhẹ, dễ mở rộng
+- npm i bcrypt 
+    dùng để mã hoá (hash) mật khẩu trước khi lưu vào cơ sở dữ liệu, giúp bảo vệ mật khẩu nếu dữ liệu bị lộ.
