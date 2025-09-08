@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
     registerUser,
     loginUser,
-    refreshToken,
+    refreshAccessToken,
     getUserById,
     updateUser,
     deleteUser,
@@ -14,7 +14,7 @@ const router = Router();
 // Auth routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.post('/refresh-token', refreshToken);
+router.post('/refresh-token', refreshAccessToken);
 
 // User CRUD routes
 router.get('/', getAllUsers); // Get all users

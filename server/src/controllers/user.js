@@ -1,74 +1,86 @@
 import User from '../models/UserModel.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // Helper function to generate tokens
-const generateTokens = (userId, userRole) => {
-    const accessToken = jwt.sign({ userId, role: userRole }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    const refreshToken = jwt.sign({ userId, role: userRole }, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' });
+const generateTokens = (userId, username) => {
+    const payload = { userId, username };
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Access token chỉ sống 1h
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' }); // Refresh token 14 ngày
     return { accessToken, refreshToken };
 };
 
-// @desc    Register a new user
+// @desc    Register a new user (only username & password)
 // @route   POST /api/users/register
 // @access  Public
 export const registerUser = async (req, res) => {
     try {
-        const { email, username, password, name, age, role } = req.body;
+        const { username, password } = req.body;
 
-        const userExists = await User.findOne({ username });
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+        // Kiểm tra dữ liệu đầu vào
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required' });
         }
 
+        // Kiểm tra username đã tồn tại chưa
+        const userExists = await User.findOne({ username });
+        if (userExists) {
+            return res.status(400).json({ message: 'Username already exists' });
+        }
+
+        // Hash mật khẩu
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Tạo user mới
         const user = new User({
-            email,
             username,
-            password: hashedPassword,
-            name,
-            age,
-            role
+            password: hashedPassword
         });
 
-        const { accessToken, refreshToken } = generateTokens(user._id, user.role);
+        // Tạo token
+        const { accessToken, refreshToken } = generateTokens(user._id, user.username);
         user.refreshToken = refreshToken;
 
         await user.save();
 
         res.status(201).json({
             message: 'User registered successfully',
-            accessToken,
-            refreshToken
+            accessToken
         });
     } catch (error) {
         res.status(500).json({ message: 'Error registering user', error: error.message });
     }
 };
 
-// @desc    Auth user & get token
+// @desc    Login user & get token
 // @route   POST /api/users/login
 // @access  Public
 export const loginUser = async (req, res) => {
     try {
         const { username, password } = req.body;
+
+        // Kiểm tra dữ liệu đầu vào
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required' });
+        }
+
         const user = await User.findOne({ username });
 
-        if (user && (await bcrypt.compare(password, user.password))) {
-            const { accessToken, refreshToken } = generateTokens(user._id, user.role);
-            user.refreshToken = refreshToken;
-            await user.save();
-
-            res.status(200).json({
-                message: 'Login successful',
-                accessToken,
-                refreshToken
-            });
-        } else {
+        // Kiểm tra username và password
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: 'Invalid username or password' });
         }
+
+        // Tạo token
+        const { accessToken, refreshToken } = generateTokens(user._id, user.username);
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Login successful',
+            accessToken
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error logging in', error: error.message });
     }
@@ -77,7 +89,7 @@ export const loginUser = async (req, res) => {
 // @desc    Refresh access token
 // @route   POST /api/users/refresh-token
 // @access  Public
-export const refreshToken = async (req, res) => {
+export const refreshAccessToken = async (req, res) => {
     const { token } = req.body;
 
     if (!token) {
@@ -92,7 +104,7 @@ export const refreshToken = async (req, res) => {
             return res.status(403).json({ message: 'Invalid refresh token' });
         }
 
-        const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
+        const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.username);
         user.refreshToken = newRefreshToken;
         await user.save();
 
@@ -100,12 +112,13 @@ export const refreshToken = async (req, res) => {
             accessToken,
             refreshToken: newRefreshToken
         });
-
     } catch (error) {
-        return res.status(403).json({ message: 'Invalid or expired refresh token' });
+        if (error.name === 'TokenExpiredError') {
+            return res.status(403).json({ message: 'Refresh token expired' });
+        }
+        return res.status(403).json({ message: 'Invalid refresh token' });
     }
 };
-
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
@@ -123,17 +136,18 @@ export const getUserById = async (req, res) => {
     }
 };
 
-// @desc    Update user profile
+// @desc    Update user (only password allowed for now)
 // @route   PUT /api/users/:id
 // @access  Private
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { password } = req.body;
 
-        if (updates.password) {
+        const updates = {};
+        if (password) {
             const salt = await bcrypt.genSalt(10);
-            updates.password = await bcrypt.hash(updates.password, salt);
+            updates.password = await bcrypt.hash(password, salt);
         }
 
         const user = await User.findByIdAndUpdate(id, updates, { new: true }).select('-password -refreshToken');

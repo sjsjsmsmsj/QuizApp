@@ -2,12 +2,13 @@ import express from 'express'
 import dotenv from 'dotenv'
 import connectMongoDB from './src/dbConfig.js'
 import questionRouter from './src/routers/question.js'
-
+import userRouter from './src/routers/user.js'
 dotenv.config()
 const app = express()
 
 app.use(express.json())
 app.use('/questions', questionRouter)
+app.use('/users', userRouter)
 
 
 connectMongoDB().then(() => {
