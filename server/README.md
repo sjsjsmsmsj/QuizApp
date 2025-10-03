@@ -45,3 +45,14 @@
     Không cần lưu session trên server: Giúp hệ thống nhẹ, dễ mở rộng
 - npm i bcrypt 
     dùng để mã hoá (hash) mật khẩu trước khi lưu vào cơ sở dữ liệu, giúp bảo vệ mật khẩu nếu dữ liệu bị lộ.
+
+- access token: dùng để khi người dùng đã đăng nhập , thì khi tắt ứng dụng thì khi người dùng 
+bật lên thì tự động đăng nhập vào app 
+=> Thường được cấp 15 phút - 1 tiếng
+
+- refresh token: dùng để cấp khi access token hết hạn, nếu refresh token cũng hết hạn người dùng phải đăng nhập lại 
+=> Thường được cấp 1 tuần - 2 tuần
+
+- đăng ký(register): tạo user mới sử dụng hashpassword (để mã hóa mật khẩu tránh bị hack cơ sở dữ liệu), với tạo access token, refresh token để lần sau khỏi cần đăng nhập 
+
+- đăng nhập(login): kiểm tra user có tồn tại hay chưa(so sánh password với password mình đã nhập thông qua hàm mã hóa(hashedPassword)) , với tạo access token, refresh token để lần sau khỏi cần đăng nhập 

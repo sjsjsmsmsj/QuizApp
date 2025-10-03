@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 // Helper function to generate tokens
 const generateTokens = (userId, username) => {
     const payload = { userId, username };
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Access token chỉ sống 1h
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Access token chỉ sống 10h
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' }); // Refresh token 14 ngày
     return { accessToken, refreshToken };
 };
@@ -76,6 +76,9 @@ export const loginUser = async (req, res) => {
         const { accessToken, refreshToken } = generateTokens(user._id, user.username);
         user.refreshToken = refreshToken;
         await user.save();
+
+        delete user._doc.password;
+        delete user._doc.refreshToken;
 
         res.status(200).json({
             message: 'Login successful',
