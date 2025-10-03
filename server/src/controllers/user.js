@@ -3,12 +3,22 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // Helper function to generate tokens
-const generateTokens = (user, exp) => {
+const generateAccessTokens = (user, expSeconds) => {
     const payload = { id: user._id, username: user.username, role: user.role };
-    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Access token chỉ sống 10h
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' }); // Refresh token 14 ngày
-    return { accessToken, refreshToken };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: expSeconds });
+
+    return accessToken;
 };
+
+const generateRefreshTokens = (user, expSeconds) => {
+    const payload = { id: user._id, username: user.username, role: user.role };
+
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: expSeconds });
+
+    return refreshToken;
+};
+
 
 // @desc    Register a new user (only username & password)
 // @route   POST /api/users/register
@@ -39,7 +49,8 @@ export const registerUser = async (req, res) => {
         });
 
         // Tạo token
-        const { accessToken, refreshToken } = generateTokens(user, '1h');
+        const accessToken = generateAccessTokens(user, '1m');
+        const refreshToken = generateRefreshTokens(user, '2m');
         user.refreshToken = refreshToken;
 
         await user.save();
@@ -73,16 +84,17 @@ export const loginUser = async (req, res) => {
         }
 
         // Tạo token
-        const { accessToken, refreshToken } = generateTokens(user, '1h');
+        const accessToken = generateAccessTokens(user, '1m');
+        const refreshToken = generateRefreshTokens(user, '2m');
         user.refreshToken = refreshToken;
         await user.save();
 
         delete user._doc.password;
-        delete user._doc.refreshToken;
 
         res.status(200).json({
             message: 'Login successful',
-            accessToken
+            accessToken,
+            refreshToken
         });
     } catch (error) {
         res.status(500).json({ message: 'Error logging in', error: error.message });

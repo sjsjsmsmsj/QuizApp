@@ -68,3 +68,18 @@ verify với token bí mật của mình(JWT.SECRET)
 
 - verifyTeacher: nếu là teacher thì có thể thêm, 
 xóa, sửa câu hỏi 
+
+# Buổi 9 JWT Refresh Token 
+- Work flow: 
+- Khi access token hết hạn 
+- Nếu refresh token cũng hết hạn -> lỗi 
+- Nếu refresh token chưa hết hạn -> 
+    tạo access token mới 
+    tạo refresh token mới 
+    hash refresh token lưu vào mongodb 
+    return client 
+
+- Xử lý lỗi tập trung tránh xử dụng try, catch 
+- Sử dụng thư viện npm i async-error-handler để nó trong middle ware, và sử dụng cuối cùng trong app 
+- AppError extend error cũng để xử lý lỗi
+

@@ -1,28 +1,67 @@
-import jwt from 'jsonwebtoken';
 
-export const verifyAccessToken = (req, res, next) => {
-    // Get token from header
+/*
+    Kiểm tra access token -> ok => next 
+    không ok -> 
+        refresh token -> 0k => next 
+        accesstoken = refresh token 
+
+        tạo refresh token mới 
+        hash refresh token mới 
+        save to database 
+        return client 
+
+                    -> không ok => trả về lỗi
+*/
+import jwt from 'jsonwebtoken';
+import User from '../models/UserModel.js';
+
+export const verifyAccessToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
-    // Check if token exists
     if (!token) {
         return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
 
     try {
-        // Verify token
+        // Verify access token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Attach user to the request object
         req.user = decoded;
-        console.log(req.user)
-        // Proceed to the next middleware or route handler
-        next();
+        return next();
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expired.' });
+        // Nếu access token hết hạn -> check refresh token
+        const refreshToken = req.headers['x-refresh-token'];
+        if (!refreshToken) {
+            return res.status(401).json({ message: 'Access denied. No refresh token provided.' });
         }
-        return res.status(403).json({ message: 'Invalid token.' });
+
+        jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, async (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ message: 'Invalid refresh token.' });
+            }
+
+            // Tạo access token mới
+            const newAccessToken = jwt.sign(
+                { id: decoded.id, username: decoded.username, role: decoded.role },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' }
+            );
+
+            // Tạo refresh token mới
+            const newRefreshToken = jwt.sign(
+                { id: decoded.id, username: decoded.username, role: decoded.role },
+                process.env.JWT_REFRESH_SECRET,
+                { expiresIn: '7d' }
+            );
+
+            // Hash refresh token mới & lưu DB
+            await User.findByIdAndUpdate(decoded.id, { refreshToken: newRefreshToken });
+
+            // Trả token mới cho client
+            return res.status(200).json({
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            });
+        });
     }
 };
