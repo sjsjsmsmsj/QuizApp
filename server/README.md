@@ -56,3 +56,15 @@ bật lên thì tự động đăng nhập vào app
 - đăng ký(register): tạo user mới sử dụng hashpassword (để mã hóa mật khẩu tránh bị hack cơ sở dữ liệu), với tạo access token, refresh token để lần sau khỏi cần đăng nhập 
 
 - đăng nhập(login): kiểm tra user có tồn tại hay chưa(so sánh password với password mình đã nhập thông qua hàm mã hóa(hashedPassword)) , với tạo access token, refresh token để lần sau khỏi cần đăng nhập 
+
+# Buổi 8
+- Phân quyền sử dụng middle wares 
+
+- authorization: thì sử dụng token của header để 
+verify với token bí mật của mình(JWT.SECRET)
+=> Nếu đúng thì giải mã ra payload, sai thì báo lỗi 
+
+- verifyAdmin: nếu là admin thì mới được xóa, sửa, xóa câu hỏi chẳng hạn
+
+- verifyTeacher: nếu là teacher thì có thể thêm, 
+xóa, sửa câu hỏi 

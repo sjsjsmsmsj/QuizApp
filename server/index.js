@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import connectMongoDB from './src/dbConfig.js'
 import questionRouter from './src/routers/question.js'
 import userRouter from './src/routers/user.js'
+import { verifyAccessToken } from './src/middlewares/authorization.js'
 dotenv.config()
 const app = express()
 

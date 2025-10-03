@@ -3,8 +3,8 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // Helper function to generate tokens
-const generateTokens = (userId, username) => {
-    const payload = { userId, username };
+const generateTokens = (user, exp) => {
+    const payload = { id: user._id, username: user.username, role: user.role };
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Access token chỉ sống 10h
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' }); // Refresh token 14 ngày
     return { accessToken, refreshToken };
@@ -39,7 +39,7 @@ export const registerUser = async (req, res) => {
         });
 
         // Tạo token
-        const { accessToken, refreshToken } = generateTokens(user._id, user.username);
+        const { accessToken, refreshToken } = generateTokens(user, '1h');
         user.refreshToken = refreshToken;
 
         await user.save();
@@ -73,7 +73,7 @@ export const loginUser = async (req, res) => {
         }
 
         // Tạo token
-        const { accessToken, refreshToken } = generateTokens(user._id, user.username);
+        const { accessToken, refreshToken } = generateTokens(user, '1h');
         user.refreshToken = refreshToken;
         await user.save();
 
@@ -107,7 +107,7 @@ export const refreshAccessToken = async (req, res) => {
             return res.status(403).json({ message: 'Invalid refresh token' });
         }
 
-        const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.username);
+        const { accessToken, refreshToken: newRefreshToken } = generateTokens(user, '1h');
         user.refreshToken = newRefreshToken;
         await user.save();
 
